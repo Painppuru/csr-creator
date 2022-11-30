@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"csr-creator/csr"
+	"github.com/Painppuru/csr-creator/csr"
 
 	"golang.org/x/crypto/ssh/terminal"
 )
