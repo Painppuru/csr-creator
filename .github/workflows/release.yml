@@ -1,0 +1,66 @@
+# Name of the workflow
+name: Release
+
+# Run on every commit tag which begins with "v" (e.g., "v0.1.4")
+on:
+  push:
+    tags:
+      - "v*"
+
+# Automatically create a GitHub Release, with release details specified (the relevant commits)
+jobs:
+  release:
+    name: "Release"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+
+  releasees-matrix-windows:
+    name: Release Go Binary for Windows
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [windows, linux]
+        goarch: ["386", amd64, arm, arm64, ppc64, ppc64le, mips, mipsle, mips64, mips64le]
+        exclude:
+          - goarch: arm
+            goos: windows
+          - goarch: arm64
+            goos: windows
+          - goarch: ppc64
+            goos: windows
+          - goarch: ppc64le
+            goos: windows
+          - goarch: mips
+            goos: windows
+          - goarch: mipsle
+            goos: windows
+          - goarch: mips64
+            goos: windows
+          - goarch: mips64le
+            goos: windows
+    steps:
+      - uses: actions/checkout@v3
+      - uses: wangyoucao577/go-release-action@v1.33
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+
+  releasees-matrix-linux:
+    name: Release Go Binary for Linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: ["386", amd64, arm, arm64, ppc64, ppc64le, mips, mipsle, mips64, mips64le]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: wangyoucao577/go-release-action@v1.33
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
