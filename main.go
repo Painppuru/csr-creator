@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"github.com/Painppuru/csr-creator/csr"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -27,7 +28,6 @@ func (e errorHandling) write() {
 	fmt.Print("Press Enter to Exit the Application")
 	// it needs 2 Scan calls to get a newline from before
 	fmt.Scanln(&input)
-	fmt.Scanln(&input)
 	os.Exit(1)
 }
 
@@ -35,6 +35,7 @@ func (e errorHandling) write() {
 var ipRe *regexp.Regexp
 var dnsRe *regexp.Regexp
 var scanner *bufio.Scanner
+var tomlFileName string = "settings.toml"
 
 // initialize the Regex and Scanner
 func init() {
@@ -46,6 +47,17 @@ func init() {
 func main() {
 	var option int
 	var csrInfo csr.CSRInfo
+
+	tomlFile, err := os.ReadFile(tomlFileName)
+	if err != nil {
+		e := errorHandling{Message: fmt.Sprintf("Couldn't open %v file in the current directory you are in. The following error occurred: %v", tomlFileName, err)}
+		e.write()
+	}
+
+	if _, err = toml.Decode(string(tomlFile), &csrInfo); err != nil {
+		e := errorHandling{Message: fmt.Sprintf("Couldn't decode the Toml File. The following error occurred: %v", err)}
+		e.write()
+	}
 
 	fmt.Println("Welcome to the CSR Generator.")
 	csrInfo.CommonName = getStdinString("What would be the Common Name: ")
@@ -81,9 +93,14 @@ func main() {
 		}
 		csrInfo.Password = string(passwordFile)
 	}
+
+	go csrInfo.CreatePrivateKey()
+
 	san(&csrInfo)
 
 	csrInfo.CreateCsr()
+	csrInfo.ExportCsr()
+	csrInfo.ExportPrivateKey()
 }
 
 // Function to get the SAN fields
@@ -131,22 +148,15 @@ func subject(csrInfo *csr.CSRInfo) {
 	var option int
 	fmt.Println("Do you want to use the default options for the subject")
 	fmt.Println("1.\tUse the default values:")
-	fmt.Println("\t\tCountry:\t")      //add Default value for Country
-	fmt.Println("\t\tProvince:\t")     //add Default value for Province
-	fmt.Println("\t\tLocality:\t")     //add Default value for Locality
-	fmt.Println("\t\tOrganization:\t") //add Default value for Organization
-	fmt.Println("\t\tE-Mail:\t\t")     //add Default value for Email
+	fmt.Printf("\t\tCountry:\t%v\n", csrInfo.Country)
+	fmt.Printf("\t\tProvince:\t%v\n", csrInfo.Province)
+	fmt.Printf("\t\tLocality:\t%v\n", csrInfo.Locality)
+	fmt.Printf("\t\tOrganization:\t%v\n", csrInfo.Organization)
+	fmt.Printf("\t\tE-Mail:\t\t%v\n", csrInfo.Email)
 	fmt.Println("2.\tSet new values")
 
 	getStdinInt("Number of the selected option: ", &option)
-
 	switch option {
-	case 1:
-		csrInfo.Country = ""      //add Default value for Country
-		csrInfo.Province = ""     //add Default value for Province
-		csrInfo.Locality = ""     //add Default value for Locality
-		csrInfo.Organization = "" //add Default value for Organization
-		csrInfo.Email = ""        //add Default value for Email
 	case 2:
 		csrInfo.Country = getStdinString("Country: ")
 		csrInfo.Province = getStdinString("Province: ")
@@ -173,6 +183,7 @@ func getStdinInt(question string, answer *int) {
 	_, err := fmt.Scanln(answer)
 	if err != nil {
 		e := errorHandling{Message: fmt.Sprintf("Cloudn't parse your input into a int. The following error occurred: %v", err.Error())}
+		fmt.Scanln()
 		e.write()
 	}
 }
