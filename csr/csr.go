@@ -28,6 +28,7 @@ type CSRInfo struct {
 	Password     string
 	IPAddress    []net.IP
 	PrivateKey   *rsa.PrivateKey
+	CSR          []byte
 }
 
 // function to check if the provided string is allready listed in the array
@@ -42,8 +43,6 @@ func (csr *CSRInfo) SanContains(check string) bool {
 
 // function to create the CSR
 func (csrInfo *CSRInfo) CreateCsr() {
-	csrInfo.CreatePrivateKey()
-
 	subj := pkix.Name{
 		CommonName:   csrInfo.CommonName,
 		Country:      []string{csrInfo.Country},
@@ -67,12 +66,15 @@ func (csrInfo *CSRInfo) CreateCsr() {
 		DNSNames:           csrInfo.SAN,
 		IPAddresses:        csrInfo.IPAddress,
 	}
-
-	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, &template, csrInfo.PrivateKey)
+	var err error
+	csrInfo.CSR, err = x509.CreateCertificateRequest(rand.Reader, &template, csrInfo.PrivateKey)
 	if err != nil {
 		fmt.Println("The following Error occured: ", err)
 		os.Exit(1)
 	}
+}
+
+func (csrInfo CSRInfo) ExportCsr() {
 	_ = os.Mkdir("./csr", os.ModePerm)
 	csrFileName := fmt.Sprintf("./csr/%v_%v.csr", time.Now().Format("20060102150405"), csrInfo.CommonName)
 
@@ -82,7 +84,7 @@ func (csrInfo *CSRInfo) CreateCsr() {
 		os.Exit(1)
 	}
 	defer csr.Close()
-	pem.Encode(csr, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})
+	pem.Encode(csr, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrInfo.CSR})
 	csrInfo.ExportPrivateKey()
 }
 
