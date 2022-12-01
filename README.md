@@ -1,6 +1,7 @@
 # csr-creator
 
-This is a cli based CSR creator that I wrote in go and can be deployed on any system, after the app is build.
+This is a cli-based CSR creator that I wrote in go and can be deployed on any system after the app is built.
 
 ## Usage
-Default values for the subject can be modified on line: 145-149 & 151-155 in the main.go file.
+To define default values you can download the settings.toml and set your default values there. It always needs to be in the same directory that you execute the CSR Creator.
+If you also want to define a default password you can create a file with the name .password and write the password in there.
